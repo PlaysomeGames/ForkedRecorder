@@ -28,7 +28,7 @@ namespace UnityEditor.Recorder.Input
         }
 
 
-        internal bool AllowTransparency;
+        public bool AllowTransparency;
     }
 
     /// <inheritdoc />

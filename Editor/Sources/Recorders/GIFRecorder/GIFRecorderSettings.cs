@@ -49,7 +49,7 @@ namespace UnityEditor.Recorder
         }
 
         /// <inheritdoc/>
-        protected internal override string Extension
+        public override string Extension
         {
             get { return "gif"; }
         }

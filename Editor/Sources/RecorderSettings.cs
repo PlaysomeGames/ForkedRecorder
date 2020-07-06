@@ -114,16 +114,16 @@ namespace UnityEditor.Recorder
             set { take = value; }
         }
 
-        [SerializeField] internal int take = 1;
+        [SerializeField] public int take = 1;
 
         /// <summary>
         /// Stores the file extension used by this Recorder (without the dot).
         /// </summary>
-        protected internal abstract string Extension { get; }
+        public abstract string Extension { get; }
 
-        [SerializeField] internal int captureEveryNthFrame = 1;
+        [SerializeField] public int captureEveryNthFrame = 1;
 
-        [SerializeField] internal FileNameGenerator fileNameGenerator;
+        [SerializeField] public FileNameGenerator fileNameGenerator;
 
         public FileNameGenerator FileNameGenerator => fileNameGenerator;
 
@@ -217,7 +217,7 @@ namespace UnityEditor.Recorder
         /// <summary>
         /// This method is automatically called each time a Recorder Settings group has changed in the Recorder Window and before starting recording.
         /// </summary>
-        internal virtual void SelfAdjustSettings()
+        public virtual void SelfAdjustSettings()
         {
         }
 

@@ -101,7 +101,7 @@ namespace UnityEditor.Recorder
         }
 
         /// <inheritdoc/>
-        protected internal override string Extension
+        public override string Extension
         {
             get { return OutputFormat.ToString().ToLower(); }
         }
@@ -133,7 +133,7 @@ namespace UnityEditor.Recorder
             return ok;
         }
 
-        internal override void SelfAdjustSettings()
+        public override void SelfAdjustSettings()
         {
             var selectedInput = m_ImageInputSelector.Selected;
             if (selectedInput == null)

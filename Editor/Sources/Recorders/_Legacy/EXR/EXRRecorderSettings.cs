@@ -10,7 +10,7 @@ namespace UnityEditor.Recorder.FrameCapturer
             fileNameGenerator.FileName = "image_" + DefaultWildcard.Frame;
         }
 
-        protected internal override string Extension
+        public override string Extension
         {
             get { return "exr"; }
         }
