@@ -24,7 +24,7 @@ namespace UnityEditor.Recorder.FrameCapturer
             }
         }
 
-        protected internal override string Extension
+        public override string Extension
         {
             get { return "mp4"; }
         }

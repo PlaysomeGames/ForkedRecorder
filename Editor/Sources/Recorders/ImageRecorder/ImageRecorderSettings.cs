@@ -83,7 +83,7 @@ namespace UnityEditor.Recorder
         }
 
         /// <inheritdoc/>
-        protected internal override string Extension
+        public override string Extension
         {
             get
             {
@@ -139,7 +139,7 @@ namespace UnityEditor.Recorder
             return (formatSupportAlpha && inputSupportAlpha && !CameraInputSettings.UsingHDRP());
         }
 
-        internal override void SelfAdjustSettings()
+        public override void SelfAdjustSettings()
         {
             var input = m_ImageInputSelector.Selected;
 

@@ -17,7 +17,7 @@ namespace UnityEditor.Recorder
 
         [SerializeField] AudioInputSettings m_AudioInputSettings = new AudioInputSettings();
 
-        protected internal override string Extension
+        public override string Extension
         {
             get { return outputFormat.ToString().ToLower(); }
         }

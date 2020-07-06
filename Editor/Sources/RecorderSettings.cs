@@ -119,16 +119,16 @@ namespace UnityEditor.Recorder
             }
         }
 
-        [SerializeField] internal int take = 1;
+        [SerializeField] public int take = 1;
 
         /// <summary>
         /// Stores the file extension used by this Recorder (without the dot).
         /// </summary>
-        protected internal abstract string Extension { get; }
+        public abstract string Extension { get; }
 
-        [SerializeField] internal int captureEveryNthFrame = 1;
+        [SerializeField] public int captureEveryNthFrame = 1;
 
-        [SerializeField] internal FileNameGenerator fileNameGenerator;
+        [SerializeField] public FileNameGenerator fileNameGenerator;
 
         /// <summary>
         /// The object that resolves wildcards into a final path for output files.
@@ -256,7 +256,7 @@ namespace UnityEditor.Recorder
         /// Performs additional changes on the selected input's settings based on the context of the recording,
         /// such as enforcing limitations due to file formats.
         /// </summary>
-        internal virtual void SelfAdjustSettings()
+        public virtual void SelfAdjustSettings()
         {
         }
 

@@ -12,7 +12,7 @@ namespace UnityEditor.Recorder.FrameCapturer
             m_AutoSelectBR = true;
         }
 
-        protected internal override string Extension
+        public override string Extension
         {
             get { return "webm"; }
         }

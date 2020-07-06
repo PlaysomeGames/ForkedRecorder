@@ -86,7 +86,7 @@ namespace UnityEditor.Recorder.Input
 
             var h = OutputHeight;
 
-            if (h > (int)maxSupportedSize)
+            if (h > (int) maxSupportedSize)
             {
                 ok = false;
                 errors.Add("Output size exceeds maximum supported height: " + (int)maxSupportedSize + "px");
