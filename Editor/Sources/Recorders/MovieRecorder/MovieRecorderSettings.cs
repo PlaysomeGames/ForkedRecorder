@@ -341,7 +341,7 @@ namespace UnityEditor.Recorder
             if (iis != null)
             {
                 iis.maxSupportedSize = OutputFormat == VideoRecorderOutputFormat.MP4
-                    ? ImageHeight.x2160p_4K
+                    ? ImageHeight.x4320p_8K
                     : ImageHeight.x4320p_8K;
 
                 if (iis.outputImageHeight != ImageHeight.Window && iis.outputImageHeight != ImageHeight.Custom)
