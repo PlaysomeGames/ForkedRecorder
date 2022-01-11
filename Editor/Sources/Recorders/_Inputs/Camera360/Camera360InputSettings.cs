@@ -1,5 +1,3 @@
-﻿#if UNITY_2018_1_OR_NEWER
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -7,16 +5,23 @@ using UnityEngine;
 
 namespace UnityEditor.Recorder.Input
 {
+    /// <summary>
+    /// A class that represents the settings of a 360 View.
+    /// </summary>
     [DisplayName("360 View")]
     [Serializable]
     public class Camera360InputSettings : ImageInputSettings
     {
+        /// <summary>
+        /// The source camera for the 360 View.
+        /// </summary>
         public ImageSource Source
         {
             get { return source; }
             set { source = value; }
         }
         [SerializeField] ImageSource source = ImageSource.MainCamera;
+
         /// <summary>
         /// Indicates the GameObject tag of the Camera used for the capture.
         /// </summary>
@@ -69,8 +74,8 @@ namespace UnityEditor.Recorder.Input
             get => mapSize;
             set => mapSize = value;
         }
-
         [SerializeField] int mapSize = 1024;
+
 
         [SerializeField] int m_OutputWidth = 1024;
         [SerializeField] int m_OutputHeight = 2048;
@@ -80,12 +85,18 @@ namespace UnityEditor.Recorder.Input
             get { return typeof(Camera360Input); }
         }
 
+        /// <summary>
+        /// The width in pixels of the 360 View image.
+        /// </summary>
         public override int OutputWidth
         {
             get { return m_OutputWidth; }
             set { m_OutputWidth = value; }
         }
 
+        /// <summary>
+        /// The height in pixels of the 360 View image.
+        /// </summary>
         public override int OutputHeight
         {
             get { return m_OutputHeight; }
@@ -111,7 +122,7 @@ namespace UnityEditor.Recorder.Input
             if (m_OutputWidth < 128 || m_OutputWidth > 8 * 1024)
             {
                 ok = false;
-                errors.Add( string.Format( "Output width must fall between {0} and {1}.", 128, 8*1024 ));
+                errors.Add(string.Format("Output width must fall between {0} and {1}.", 128, 8 * 1024));
             }
 
             if (m_OutputHeight != (1 << (int)Math.Log(m_OutputHeight, 2)))
@@ -123,7 +134,7 @@ namespace UnityEditor.Recorder.Input
             if (m_OutputHeight < 128 || m_OutputHeight > 8 * 1024)
             {
                 ok = false;
-                errors.Add( string.Format( "Output height must fall between {0} and {1}.", 128, 8*1024 ));
+                errors.Add(string.Format("Output height must fall between {0} and {1}.", 128, 8 * 1024));
             }
 
             if (mapSize != (1 << (int)Math.Log(mapSize, 2)))
@@ -132,10 +143,10 @@ namespace UnityEditor.Recorder.Input
                 errors.Add("Cube Map size must be a power of 2.");
             }
 
-            if( mapSize < 16 || mapSize > 8 * 1024 )
+            if (mapSize < 16 || mapSize > 8 * 1024)
             {
                 ok = false;
-                errors.Add( string.Format( "Cube Map size must fall between {0} and {1}.", 16, 8*1024 ));
+                errors.Add(string.Format("Cube Map size must fall between {0} and {1}.", 16, 8 * 1024));
             }
 
             if (renderStereo && stereoSeparation < float.Epsilon)
@@ -147,7 +158,4 @@ namespace UnityEditor.Recorder.Input
             return ok;
         }
     }
-
 }
-
-#endif

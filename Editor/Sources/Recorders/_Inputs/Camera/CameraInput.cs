@@ -31,6 +31,7 @@ namespace UnityEditor.Recorder.Input
             private Shader        m_CopyShader;
             private Material      m_CopyMaterial;
             private RenderTexture m_RenderTexture;
+            public bool           flipVertically = true; // set to false to avoid vflip
 
             public Camera targetCamera
             {
@@ -73,6 +74,10 @@ namespace UnityEditor.Recorder.Input
             public virtual void ReleaseCamera()
             {
                 UnityHelpers.Destroy(m_CopyMaterial);
+                // Case REC-62 Multiple Recorder produce flipped content
+                // Important to set m_CopyMaterial to null because the getter
+                // might try to return a material that already was destroyed.
+                m_CopyMaterial = null;
             }
 
             protected abstract void SetupCommandBuffer(RenderTexture renderTexture);
@@ -105,7 +110,7 @@ namespace UnityEditor.Recorder.Input
                         m_CopyMaterial = new Material(copyShader);
                         if (m_CaptureAlpha)
                             m_CopyMaterial.EnableKeyword("TRANSPARENCY_ON");
-                        if (!Options.useCameraCaptureCallbacks)
+                        if (flipVertically)
                             m_CopyMaterial.EnableKeyword("VERTICAL_FLIP");
                     }
                     return m_CopyMaterial;
@@ -123,27 +128,35 @@ namespace UnityEditor.Recorder.Input
             }
         }
 
-        private class CaptureCallbackInputStrategy : InputStrategy
+        private class CaptureCallbackSRPInputStrategy : InputStrategy
         {
-            public CaptureCallbackInputStrategy(bool captureAlpha) : base(captureAlpha) {}
+            public CaptureCallbackSRPInputStrategy(bool captureAlpha) : base(captureAlpha) {}
 
             protected override void SetupCommandBuffer(RenderTexture renderTexture)
             {
+#if CAPTURE_ACTION
+                CameraCaptureBridge.AddCaptureAction(targetCamera, AddCaptureCommands);
+#else
                 CameraCapture.AddCaptureAction(targetCamera, AddCaptureCommands);
+#endif
             }
 
             public override void ReleaseCamera()
             {
+#if CAPTURE_ACTION
+                CameraCaptureBridge.RemoveCaptureAction(targetCamera, AddCaptureCommands);
+#else
                 CameraCapture.RemoveCaptureAction(targetCamera, AddCaptureCommands);
+#endif
                 base.ReleaseCamera();
             }
         }
 
-        private class CameraCommandBufferInputStrategy : InputStrategy
+        private class CameraCommandBufferLegacyInputStrategy : InputStrategy
         {
             private CommandBuffer m_cbCopyFB;
 
-            public CameraCommandBufferInputStrategy(bool captureAlpha) : base(captureAlpha) {}
+            public CameraCommandBufferLegacyInputStrategy(bool captureAlpha) : base(captureAlpha) {}
 
             protected override void SetupCommandBuffer(RenderTexture renderTexture)
             {
@@ -192,10 +205,10 @@ namespace UnityEditor.Recorder.Input
             if (cbSettings.FlipFinalOutput)
                 m_VFlipper = new TextureFlipper();
 
-            if ( CameraInputSettings.UsingLegacyRP())
-                m_InputStrategy = new CameraCommandBufferInputStrategy(cbSettings.AllowTransparency);
+            if (CameraInputSettings.UsingLegacyRP())
+                m_InputStrategy = new CameraCommandBufferLegacyInputStrategy(cbSettings.RecordTransparency);
             else
-                m_InputStrategy = new CaptureCallbackInputStrategy(cbSettings.AllowTransparency);
+                m_InputStrategy = new CaptureCallbackSRPInputStrategy(cbSettings.RecordTransparency);
 
             switch (cbSettings.Source)
             {
@@ -217,7 +230,7 @@ namespace UnityEditor.Recorder.Input
                         else
                         {
                             if (size != GameViewSize.currentSize)
-                                Debug.LogError("Requesting a resolution change while a recorder's input has already requested one! Undefined behaviour.");
+                                Debug.LogError($"Requesting a resolution change (to {OutputWidth}x{OutputHeight}) while a recorder's input has already requested one! Undefined behaviour. Count: {GameViewSize.modifiedResolutionCount}");
                         }
                         GameViewSize.modifiedResolutionCount++;
                         m_ModifiedResolution = true;
@@ -278,7 +291,7 @@ namespace UnityEditor.Recorder.Input
                 }
                 case ImageSource.TaggedCamera:
                 {
-                    var tag = ((CameraInputSettings) settings).CameraTag;
+                    var tag = ((CameraInputSettings)settings).CameraTag;
 
                     if (TargetCamera == null || !TargetCamera.gameObject.CompareTag(tag))
                     {
@@ -303,6 +316,18 @@ namespace UnityEditor.Recorder.Input
             }
 
             PrepFrameRenderTexture(session);
+            bool needToFlip = true;
+            var movieRecorderSettings = session.recorder.settings as MovieRecorderSettings;
+            if (movieRecorderSettings != null)
+            {
+                var encoderAlreadyFlips = movieRecorderSettings.encodersRegistered[movieRecorderSettings.encoderSelected].PerformsVerticalFlip;
+                needToFlip = encoderAlreadyFlips;
+            }
+
+            if (CameraInputSettings.UsingLegacyRP())
+                m_InputStrategy.flipVertically = needToFlip; // regular pipeline
+            else
+                m_InputStrategy.flipVertically = !needToFlip; // scriptable render pipeline already flips input
             m_InputStrategy.SetupCamera(OutputRenderTexture);
         }
 
@@ -351,7 +376,7 @@ namespace UnityEditor.Recorder.Input
             }
 
             if (cbSettings.FlipFinalOutput)
-                m_VFlipper.Flip(OutputRenderTexture);
+                OutputRenderTexture = m_VFlipper.Flip(OutputRenderTexture);
         }
 
         /// <inheritdoc/>
@@ -364,7 +389,8 @@ namespace UnityEditor.Recorder.Input
 
                 if (m_ModifiedResolution)
                 {
-                    GameViewSize.modifiedResolutionCount--;
+                    if (GameViewSize.modifiedResolutionCount > 0)
+                        GameViewSize.modifiedResolutionCount--; // don't allow negative if called twice
                     if (GameViewSize.modifiedResolutionCount == 0)
                         GameViewSize.RestoreSize();
                 }

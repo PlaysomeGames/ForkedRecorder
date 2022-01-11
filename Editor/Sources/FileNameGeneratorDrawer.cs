@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using UnityEngine;
 
@@ -11,28 +11,35 @@ namespace UnityEditor.Recorder
         SerializedProperty m_Path;
 
         static bool s_Dirty = false;
-        
-        static readonly GUIStyle s_PathPreviewStyle = new GUIStyle(GUI.skin.label) { wordWrap = true };
-	    static readonly GUIStyle s_OpenPathButtonStyle = new GUIStyle("minibutton") { fixedWidth = 30 };
 
-	    static Texture2D s_OpenPathIcon;
+        private static int padval = 30;
+        static readonly GUIStyle s_PathPreviewStyle = new GUIStyle(GUI.skin.label) {
+            wordWrap = true,
+            stretchHeight = true,
+            stretchWidth = true,
+            padding = new RectOffset(padval, 0, 0, 0),
+            clipping = TextClipping.Overflow
+        };
+        static readonly GUIStyle s_OpenPathButtonStyle = new GUIStyle("minibutton") { fixedWidth = 30 };
+
+        static Texture2D s_OpenPathIcon;
 
         protected override void Initialize(SerializedProperty property)
         {
-	        if (s_OpenPathIcon == null)
-	        {
-		        var iconName = "popout_icon";
-		        if (EditorGUIUtility.isProSkin)
-			        iconName = "d_" + iconName;
-		        
-		        s_OpenPathIcon = Resources.Load<Texture2D>(iconName);
-	        }
-	        
+            if (s_OpenPathIcon == null)
+            {
+                var iconName = "popout_icon";
+                if (EditorGUIUtility.isProSkin)
+                    iconName = "d_" + iconName;
+
+                s_OpenPathIcon = UnityHelpers.LoadLocalPackageAsset<Texture2D>($"{iconName}.png", true);
+            }
+
             if (target != null)
                 return;
-            
+
             base.Initialize(property);
-            
+
             m_FileName = property.FindPropertyRelative("m_FileName");
             m_Path = property.FindPropertyRelative("m_Path");
         }
@@ -40,20 +47,25 @@ namespace UnityEditor.Recorder
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             Initialize(property);
-            
+
             EditorGUI.BeginProperty(position, label, property);
             position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
 
-            const float tagWidth = 77;
+            var indent = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+
+            const float tagWidth = 88;
             var txtWidth = position.width - tagWidth - 5;
             var txtRect = new Rect(position.x, position.y, txtWidth, position.height);
             var tagRect = new Rect(position.x + txtWidth + 5, position.y, tagWidth, position.height);
-            
+
             GUI.SetNextControlName("FileNameField");
-            m_FileName.stringValue = GUI.TextField(txtRect, m_FileName.stringValue);
+            m_FileName.stringValue = RecorderEditor.FromRecorderWindow
+                ? EditorGUI.TextField(txtRect, m_FileName.stringValue)
+                : EditorGUI.DelayedTextField(txtRect, m_FileName.stringValue);
             var editor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
-            
-            if (GUI.GetNameOfFocusedControl().Equals("FileNameField") && 
+
+            if (GUI.GetNameOfFocusedControl().Equals("FileNameField") &&
                 Event.current.type == EventType.KeyUp && (Event.current.modifiers == EventModifiers.Control || Event.current.modifiers == EventModifiers.Command))
             {
                 if (Event.current.keyCode == KeyCode.C)
@@ -69,8 +81,10 @@ namespace UnityEditor.Recorder
                 }
             }
 
-            if (EditorGUI.DropdownButton(tagRect, new GUIContent("+ Wildcards"), FocusType.Passive))
+            GUI.SetNextControlName("FileNameTagPopup");
+            if (EditorGUI.DropdownButton(tagRect, new GUIContent("+ Wildcards", "Insert a placeholder at the cursor position to include auto-generated text data from your current recording context"), FocusType.Passive))
             {
+                GUI.FocusControl("FileNameTagPopup");
                 var menu = new GenericMenu();
 
                 foreach (var w in target.wildcards)
@@ -83,7 +97,7 @@ namespace UnityEditor.Recorder
                         s_Dirty = true;
                     });
                 }
-                
+
                 menu.DropDown(tagRect);
             }
 
@@ -93,21 +107,45 @@ namespace UnityEditor.Recorder
                 GUI.changed = true;
             }
 
+            EditorGUI.indentLevel = indent;
             EditorGUILayout.PropertyField(m_Path);
+            EditorGUI.indentLevel = 0;
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PrefixLabel(" ");
-	        
-	        var path = target.BuildAbsolutePath(null);
-	        
-	        var r = GUILayoutUtility.GetRect(new GUIContent(path), s_PathPreviewStyle, null);
-	        EditorGUI.SelectableLabel(r, path, s_PathPreviewStyle);
-	        	        
-	        if (GUILayout.Button(s_OpenPathIcon, s_OpenPathButtonStyle))
-				OpenInFileBrowser.Open(path);
-            
+
+            var path = target.BuildAbsolutePath(null);
+
+            GUILayoutOption[] op = new GUILayoutOption[]
+            {
+                GUILayout.ExpandWidth(true),
+                GUILayout.ExpandHeight(true)
+            };
+
+            var r = GUILayoutUtility.GetRect(new GUIContent(path), s_PathPreviewStyle, op);
+            EditorGUI.SelectableLabel(r, path, s_PathPreviewStyle);
+
+            if (GUILayout.Button(new GUIContent(s_OpenPathIcon, "Open the output location in your file browser"),
+                s_OpenPathButtonStyle))
+            {
+                try
+                {
+                    var fiOutput = new FileInfo(path);
+                    var dir = fiOutput.Directory;
+                    if (!dir.Exists)
+                        dir.Create();
+                }
+                catch (ArgumentNullException)
+                {
+                    // An error occured, most likely because the path was null
+                    Debug.LogWarning($"Error opening location {path} in the file browser.");
+                }
+                OpenInFileBrowser.Open(path);
+            }
+
             EditorGUILayout.EndHorizontal();
-            
+
+            EditorGUI.indentLevel = indent;
             EditorGUI.EndProperty();
         }
 
@@ -129,72 +167,71 @@ namespace UnityEditor.Recorder
             return text + pattern;
         }
     }
-    
-	// Inspired from http://wiki.unity3d.com/index.php/OpenInFileBrowser
+
+    // Inspired from http://wiki.unity3d.com/index.php/OpenInFileBrowser
     static class OpenInFileBrowser
-	{
-		static void OpenInOSX(string path, bool openInsideFolder)
-		{
-			var osxPath = path.Replace("\\", "/");
-	 
-			if (!osxPath.StartsWith("\""))
-			{
-				osxPath = "\"" + osxPath;
-			}
-	 
-			if (!osxPath.EndsWith("\""))
-			{
-				osxPath = osxPath + "\"";
-			}
-	 
-			var arguments = (openInsideFolder ? "" : "-R ") + osxPath;
-	 
-			try
-			{
-				System.Diagnostics.Process.Start("open", arguments);
-			}
-			catch (System.ComponentModel.Win32Exception e)
-			{
-				// tried to open mac finder in windows
-				// just silently skip error
-				// we currently have no platform define for the current OS we are in, so we resort to this
-				e.HelpLink = ""; // do anything with this variable to silence warning about not using it
-			}
-		}
-	
-		static void OpenInWindows(string path, bool openInsideFolder)
-		{ 
-			var winPath = path.Replace("/", "\\"); // windows explorer doesn't like forward slashes
-	 
-			try
-			{
-				System.Diagnostics.Process.Start("explorer.exe", (openInsideFolder ? "/root," : "/select,") + winPath);
-			}
-			catch (System.ComponentModel.Win32Exception e)
-			{
-				// tried to open win explorer in mac
-				// just silently skip error
-				// we currently have no platform define for the current OS we are in, so we resort to this
-				e.HelpLink = ""; // do anything with this variable to silence warning about not using it
-			}
-		}
-	 
-		public static void Open(string path)
-		{
-			if (!File.Exists(path))
-				path = Path.GetDirectoryName(path);
+    {
+        static void OpenInOSX(string path, bool openInsideFolder)
+        {
+            var osxPath = path.Replace("\\", "/");
 
-			var openInsideFolder = Directory.Exists(path);
-			
-			if (Application.platform == RuntimePlatform.WindowsEditor)
-			{
-				OpenInWindows(path, openInsideFolder);
-			}
-			else if (Application.platform == RuntimePlatform.OSXEditor)
-			{
-				OpenInOSX(path, openInsideFolder);
-			}
-		}
-}
+            if (!osxPath.StartsWith("\""))
+            {
+                osxPath = "\"" + osxPath;
+            }
 
+            if (!osxPath.EndsWith("\""))
+            {
+                osxPath = osxPath + "\"";
+            }
+
+            var arguments = (openInsideFolder ? "" : "-R ") + osxPath;
+
+            try
+            {
+                System.Diagnostics.Process.Start("open", arguments);
+            }
+            catch (System.ComponentModel.Win32Exception e)
+            {
+                // tried to open mac finder in windows
+                // just silently skip error
+                // we currently have no platform define for the current OS we are in, so we resort to this
+                e.HelpLink = ""; // do anything with this variable to silence warning about not using it
+            }
+        }
+
+        static void OpenInWindows(string path, bool openInsideFolder)
+        {
+            var winPath = path.Replace("/", "\\"); // windows explorer doesn't like forward slashes
+
+            try
+            {
+                System.Diagnostics.Process.Start("explorer.exe", (openInsideFolder ? "/root," : "/select,") + winPath);
+            }
+            catch (System.ComponentModel.Win32Exception e)
+            {
+                // tried to open win explorer in mac
+                // just silently skip error
+                // we currently have no platform define for the current OS we are in, so we resort to this
+                e.HelpLink = ""; // do anything with this variable to silence warning about not using it
+            }
+        }
+
+        public static void Open(string path)
+        {
+            if (!File.Exists(path))
+                path = Path.GetDirectoryName(path);
+
+            var openInsideFolder = Directory.Exists(path);
+
+            if (Application.platform == RuntimePlatform.WindowsEditor)
+            {
+                OpenInWindows(path, openInsideFolder);
+            }
+            else if (Application.platform == RuntimePlatform.OSXEditor)
+            {
+                OpenInOSX(path, openInsideFolder);
+            }
+        }
+    }
 }

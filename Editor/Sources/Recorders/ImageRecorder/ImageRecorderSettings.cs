@@ -7,6 +7,9 @@ using UnityEngine.Serialization;
 
 namespace UnityEditor.Recorder
 {
+    /// <summary>
+    /// A class that represents the settings of an Image Recorder.
+    /// </summary>
     [RecorderSettings(typeof(ImageRecorder), "Image Sequence", "imagesequence_16")]
     public class ImageRecorderSettings : RecorderSettings
     {
@@ -28,6 +31,11 @@ namespace UnityEditor.Recorder
             /// </summary>
             EXR
         }
+        internal enum ColorSpaceType
+        {
+            sRGB_sRGB,
+            Unclamped_linear_sRGB
+        }
 
         /// <summary>
         /// Stores the output image format currently used for this Recorder.
@@ -41,7 +49,7 @@ namespace UnityEditor.Recorder
         [SerializeField] ImageRecorderOutputFormat outputFormat = ImageRecorderOutputFormat.JPEG;
 
         /// <summary>
-        /// Use this property to capture the alpha channel (True) or not (False).
+        /// Use this property to capture the alpha channel (True) or not (False) in the output.
         /// </summary>
         /// <remarks>
         /// Alpha channel is captured only if the output image format supports it.
@@ -60,20 +68,18 @@ namespace UnityEditor.Recorder
         /// </summary>
         public bool CaptureHDR
         {
-            get { return captureHDR; }
-            set { captureHDR = value; }
+            get { return CanCaptureHDRFrames() && m_ColorSpace == ColorSpaceType.Unclamped_linear_sRGB;; }
         }
 
-        [SerializeField] private bool captureHDR;
 
         [SerializeField] ImageInputSelector m_ImageInputSelector = new ImageInputSelector();
-
+        [SerializeField] internal ColorSpaceType m_ColorSpace = ColorSpaceType.Unclamped_linear_sRGB;
         /// <summary>
         /// Default constructor.
         /// </summary>
         public ImageRecorderSettings()
         {
-            fileNameGenerator.FileName = "image_" + DefaultWildcard.Frame;
+            fileNameGenerator.FileName = "image_" + DefaultWildcard.Take + "_" + DefaultWildcard.Frame;
         }
 
         /// <inheritdoc/>
@@ -95,6 +101,9 @@ namespace UnityEditor.Recorder
             }
         }
 
+        /// <summary>
+        /// The settings of the input image.
+        /// </summary>
         public ImageInputSettings imageInputSettings
         {
             get { return m_ImageInputSelector.ImageInputSettings; }
@@ -104,16 +113,12 @@ namespace UnityEditor.Recorder
         protected internal override bool ValidityCheck(List<string> errors)
         {
             var ok = base.ValidityCheck(errors);
-
-            if(string.IsNullOrEmpty(fileNameGenerator.FileName))
-            {
-                ok = false;
-                errors.Add("missing file name");
-            }
-
             return ok;
         }
 
+        /// <summary>
+        /// The list of settings of the Recorder Inputs.
+        /// </summary>
         public override IEnumerable<RecorderInputSettings> InputsSettings
         {
             get { yield return m_ImageInputSelector.Selected; }
@@ -129,7 +134,7 @@ namespace UnityEditor.Recorder
         internal bool CanCaptureAlpha()
         {
             bool formatSupportAlpha = OutputFormat == ImageRecorderOutputFormat.PNG ||
-                                      OutputFormat == ImageRecorderOutputFormat.EXR;
+                OutputFormat == ImageRecorderOutputFormat.EXR;
             bool inputSupportAlpha = imageInputSettings.SupportsTransparent;
             return (formatSupportAlpha && inputSupportAlpha && !CameraInputSettings.UsingHDRP());
         }
@@ -150,7 +155,7 @@ namespace UnityEditor.Recorder
             var cbis = input as CameraInputSettings;
             if (cbis != null)
             {
-                cbis.AllowTransparency = CanCaptureAlpha() && CaptureAlpha;
+                cbis.RecordTransparency = CanCaptureAlpha() && CaptureAlpha;
             }
 
             var gis = input as GameViewInputSettings;

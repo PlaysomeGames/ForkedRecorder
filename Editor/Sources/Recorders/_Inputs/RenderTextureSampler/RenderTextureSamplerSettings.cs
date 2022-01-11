@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using UnityEngine;
@@ -32,6 +32,9 @@ namespace UnityEditor.Recorder.Input
         X16 = 16,
     }
 
+    /// <summary>
+    /// The settings of a Render Texture sampler.
+    /// </summary>
     [DisplayName("Texture Sampling")]
     [Serializable]
     public class RenderTextureSamplerSettings : ImageInputSettings
@@ -55,8 +58,8 @@ namespace UnityEditor.Recorder.Input
             set { superSampling = value; }
         }
         [SerializeField] SuperSamplingCount superSampling = SuperSamplingCount.X1;
-        [SerializeField]internal float superKernelPower = 16f;
-        [SerializeField]internal float superKernelScale = 1f;
+        [SerializeField] internal float superKernelPower = 16f;
+        [SerializeField] internal float superKernelScale = 1f;
 
         /// <summary>
         /// Stores the GameObject tag that defines the Camera used for the recording.
@@ -106,7 +109,7 @@ namespace UnityEditor.Recorder.Input
             if (h > kMaxSupportedSize)
             {
                 ok = false;
-                errors.Add("Output size exceeds maximum supported size: " + kMaxSupportedSize);
+                errors.Add("Output size exceeds maximum supported height: " + kMaxSupportedSize + "px");
             }
 
             return ok;

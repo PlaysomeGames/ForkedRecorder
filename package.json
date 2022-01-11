@@ -1,13 +1,13 @@
 {
   "name": "com.unity.recorder",
   "displayName": "Unity Recorder",
-  "version": "2.2.0-preview.4",
-  "unity": "2018.3",
-  "unityRelease": "4f1",
+  "version": "2.5.7",
+  "unity": "2019.4",
+  "unityRelease": "1f1",
   "dependencies": {
     "com.unity.timeline": "1.0.0"
   },
-  "description": "Unity Recorder allows the recording of Animation clips, Videos and Images directly from the Unity Editor.",
+  "description": "The Unity Recorder allows you to capture and save data from the Unity Editor during Play Mode: animations, videos, images, audio, and more.",
   "keywords": [
     "unity",
     "recorder",
@@ -18,21 +18,31 @@
     "clip",
     "images"
   ],
+  "relatedPackages": {
+    "com.unity.recorder.tests": "2.5.7"
+  },
+  "upmCi": {
+    "footprint": "dc9cd88ded3dada1ccc6c833f002057699df0511"
+  },
   "repository": {
-    "footprint": "31bf4b6400f779bbdd42c58d24a552a6e46ccc3b",
+    "url": "https://github.cds.internal.unity3d.com/unity/com.unity.recorder.git",
     "type": "git",
-    "url": "https://github.com/Unity-Technologies/com.unity.recorder.git",
-    "revision": "b97e1ca7c4f1fc85711e4f7f24ca74a8debdd1ac"
+    "revision": "a59deb20019b176e95dd8efa2f9b41b8e4a0bb96"
   },
   "samples": [
     {
       "displayName": "Screenshot Capture Sample",
-      "description": "This example shows how to setup a recording session via script.",
+      "description": "This example shows how to set up a recording session via script.",
       "path": "Samples~/CaptureScreenShot"
     },
     {
+      "displayName": "Movie Recorder Sample",
+      "description": "This example shows how to set up a movie recording session via script.",
+      "path": "Samples~/MovieRecorder"
+    },
+    {
       "displayName": "Multiple Recordings Sample",
-      "description": "This example shows how to setup a multiple recording session via script.",
+      "description": "This example shows how to set up a multiple recording session via script.",
       "path": "Samples~/MultipleRecordings"
     },
     {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEditor.Recorder.Input;
 using UnityEngine;
@@ -53,15 +53,15 @@ namespace UnityEditor.Recorder
 
         /// <inheritdoc/>
         /// <remarks>
-        ///  Animation Recorder currently supports the following platforms: LinuxEditor, OSXEditor, WindowsEditor.
+        /// Animation Recorder currently supports the following platforms: LinuxEditor, OSXEditor, WindowsEditor.
         /// </remarks>
         public override bool IsPlatformSupported
         {
             get
             {
                 return Application.platform == RuntimePlatform.LinuxEditor ||
-                       Application.platform == RuntimePlatform.OSXEditor ||
-                       Application.platform == RuntimePlatform.WindowsEditor;
+                    Application.platform == RuntimePlatform.OSXEditor ||
+                    Application.platform == RuntimePlatform.WindowsEditor;
             }
         }
 
@@ -95,11 +95,6 @@ namespace UnityEditor.Recorder
         public override void OnAfterDuplicate()
         {
             m_AnimationInputSettings.DuplicateExposedReference();
-        }
-
-        void OnDestroy()
-        {
-            m_AnimationInputSettings.ClearExposedReference();
         }
     }
 }

@@ -2,7 +2,7 @@ using UnityEditor.Recorder.Input;
 using UnityEngine.Playables;
 
 namespace UnityEditor.Recorder.Timeline
-{  
+{
     class RecorderPlayableBehaviour : PlayableBehaviour
     {
         PlayState m_PlayState = PlayState.Paused;
@@ -30,14 +30,6 @@ namespace UnityEditor.Recorder.Timeline
             }
         }
 
-        public override void PrepareFrame(Playable playable, FrameData info)
-        {
-            if (session != null && session.isRecording)
-            {
-                session.PrepareNewFrame();
-            }
-        }
-
         public override void ProcessFrame(Playable playable, FrameData info, object playerData)
         {
             if (session != null)
@@ -48,6 +40,11 @@ namespace UnityEditor.Recorder.Timeline
                     endOfFrameComp.m_playable = this;
                 }
             }
+
+            if (session != null && session.isRecording)
+            {
+                session.PrepareNewFrame();
+            }
         }
 
         public override void OnBehaviourPlay(Playable playable, FrameData info)
@@ -57,7 +54,14 @@ namespace UnityEditor.Recorder.Timeline
 
             // Assumption: OnPlayStateChanged( PlayState.Playing ) ONLY EVER CALLED ONCE for this type of playable.
             m_PlayState = PlayState.Playing;
-            session.BeginRecording();
+            var res = session.BeginRecording();
+#if UNITY_EDITOR
+            RecorderAnalytics.SendStartEvent(session);
+            if (!res)
+            {
+                RecorderAnalytics.SendStopEvent(session, true, false);
+            }
+#endif
         }
 
         public override void OnBehaviourPause(Playable playable, FrameData info)
@@ -67,7 +71,10 @@ namespace UnityEditor.Recorder.Timeline
 
             if (session.isRecording && m_PlayState == PlayState.Playing)
             {
-                session.EndRecording();
+#if UNITY_EDITOR
+                const double eps = 1e-5; // end is never evaluated
+                RecorderAnalytics.SendStopEvent(session, false, playable.GetTime() >= playable.GetDuration() - eps);
+#endif
                 session.Dispose();
                 session = null;
             }

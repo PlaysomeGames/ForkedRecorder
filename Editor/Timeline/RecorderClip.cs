@@ -19,9 +19,6 @@ namespace UnityEditor.Recorder.Timeline
         [SerializeField]
         public RecorderSettings settings;
 
-        internal bool needsDuplication;
-
-        static readonly Dictionary<RecorderSettings, RecorderClip> s_SettingsLookup = new Dictionary<RecorderSettings, RecorderClip>();
 
         readonly SceneHook m_SceneHook = new SceneHook(Guid.NewGuid().ToString());
 
@@ -30,13 +27,21 @@ namespace UnityEditor.Recorder.Timeline
             get { return settings == null ? null : RecordersInventory.GetRecorderInfo(settings.GetType()).recorderType; }
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Unity Recorder does not support any clip features.
+        /// For more information see: https://docs.unity3d.com/2018.1/Documentation/ScriptReference/Timeline.ClipCaps.html
+        /// </summary>
         public ClipCaps clipCaps
         {
             get { return ClipCaps.None; }
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// For more information see: https://docs.unity3d.com/ScriptReference/Playables.PlayableAsset.CreatePlayable.html
+        /// </summary>
+        /// <param name="graph">The Playable Graph.</param>
+        /// <param name="owner">The GameObject containing the PlayableDirector.</param>
+        /// <returns>The playable that drives the AlembicStreamPlayer.</returns>
         public override Playable CreatePlayable(PlayableGraph graph, GameObject owner)
         {
             var playable = ScriptPlayable<RecorderPlayableBehaviour>.Create(graph);
@@ -48,31 +53,29 @@ namespace UnityEditor.Recorder.Timeline
             return playable;
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// This is called when the Recorder Clip is being destroyed.
+        /// For more information see: https://docs.unity3d.com/ScriptReference/ScriptableObject.OnDestroy.html
+        /// </summary>
         public void OnDestroy()
         {
-            UnityHelpers.Destroy(settings, true);
-        }
+#if UNITY_EDITOR
 
-        /// <inheritdoc/>
-        public void OnBeforeSerialize()
-        {
-            if (settings != null)
+            var path = AssetDatabase.GetAssetPath(this);
+            if (string.IsNullOrEmpty(path))
+                return;
+
+            var objs = AssetDatabase.LoadAllAssetsAtPath(path);
+
+            foreach (var obj in objs)
             {
-                RecorderClip clip;
-                if (s_SettingsLookup.TryGetValue(settings, out clip))
+                if (obj is RecorderClip rc && rc != this && rc.settings == settings)
                 {
-                    if (clip != this)
-                    {
-                        // Duplicate detected. Fix it
-                        needsDuplication = true;
-                    }
-                }
-                else
-                {
-                    s_SettingsLookup[settings] = this;
+                    return;
                 }
             }
+            UnityHelpers.Destroy(settings, true);
+#endif
         }
 
         internal TimelineAsset FindTimelineAsset()
@@ -91,7 +94,7 @@ namespace UnityEditor.Recorder.Timeline
             return null;
         }
 
-        void PushTimelineIntoRecorder(TimelineAsset timelineAsset)
+        internal void PushTimelineIntoRecorder(TimelineAsset timelineAsset)
         {
             if (settings == null || timelineAsset == null)
                 return;
@@ -105,10 +108,22 @@ namespace UnityEditor.Recorder.Timeline
             PushTimelineIntoRecorder(FindTimelineAsset());
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// This is called before the Recorder Clip object is serialized.
+        /// For more information see: https://docs.unity3d.com/ScriptReference/ISerializationCallbackReceiver.OnBeforeSerialize.html
+        /// </summary>
+        public void OnBeforeSerialize()
+        {
+            // Nothing, we need to keep these methods to avoid changing the signature of RecorderClip for the Public API
+        }
+
+        /// <summary>
+        /// This is called after the Recorder Clip object has been deserialized.
+        /// For more information see: https://docs.unity3d.com/ScriptReference/ISerializationCallbackReceiver.OnAfterDeserialize.html
+        /// </summary>
         public void OnAfterDeserialize()
         {
-            // Nothing
+            // Nothing, we need to keep these methods to avoid changing the signature of RecorderClip for the Public API
         }
     }
 }

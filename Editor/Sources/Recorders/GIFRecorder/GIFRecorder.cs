@@ -8,11 +8,11 @@ namespace UnityEditor.Recorder
     {
         fcAPI.fcGifContext m_ctx;
         fcAPI.fcStream m_stream;
-        
+
         protected internal override bool BeginRecording(RecordingSession session)
         {
             if (!base.BeginRecording(session)) { return false; }
-            
+
             Settings.fileNameGenerator.CreateDirectory(session);
 
             return true;
@@ -20,8 +20,20 @@ namespace UnityEditor.Recorder
 
         protected internal override void EndRecording(RecordingSession session)
         {
-            m_ctx.Release();
-            m_stream.Release();
+            // Case REC-98 crash gif animation when start/stop recording in playmode
+            // If you start recording while in playmode pause the RecordFrame
+            // will never be called and m_ctx and m_stream will de-reference null
+            // pointers that will crash unity.
+            if (m_ctx)
+            {
+                m_ctx.Release();
+            }
+
+            if (m_stream)
+            {
+                m_stream.Release();
+            }
+
             base.EndRecording(session);
         }
 
@@ -33,7 +45,7 @@ namespace UnityEditor.Recorder
             var input = (BaseRenderTextureInput)m_Inputs[0];
             var frame = input.OutputRenderTexture;
 
-            if(!m_ctx)
+            if (!m_ctx)
             {
                 var gifSettings = Settings.gifEncoderSettings;
                 gifSettings.width = frame.width;
@@ -49,6 +61,5 @@ namespace UnityEditor.Recorder
                 fcAPI.fcGifAddFramePixels(m_ctx, data, fmt, session.recorderTime);
             });
         }
-
     }
 }

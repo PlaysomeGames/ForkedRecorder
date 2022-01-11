@@ -27,6 +27,9 @@ namespace UnityEditor.Recorder
         /// </summary>
         protected internal int RecordedFramesCount { get; internal set; }
 
+        /// <summary>
+        /// The list of inputs to the Recorder, representing the sources of the captured data.
+        /// </summary>
         protected List<RecorderInput> m_Inputs;
 
         void Awake()
@@ -42,7 +45,7 @@ namespace UnityEditor.Recorder
 
         void OnDestroy()
         {
-            if (m_ModifiedCaptureFR )
+            if (m_ModifiedCaptureFR)
             {
                 sm_CaptureFrameRateCount--;
                 if (sm_CaptureFrameRateCount == 0)
@@ -63,15 +66,16 @@ namespace UnityEditor.Recorder
 
             settings.SelfAdjustSettings(); // ignore return value.
 
-            var fixedRate = settings.FrameRatePlayback == FrameRatePlayback.Constant ? (int)settings.FrameRate : 0;
+            var fixedRate = settings.FrameRatePlayback == FrameRatePlayback.Constant ? settings.FrameRate : 0.0f;
             if (fixedRate > 0)
             {
-                if (Time.captureFramerate != 0 && fixedRate != Time.captureFramerate )
+                var toCompare = 1.0f / fixedRate;
+                if (Time.captureFramerate != 0 && Math.Abs(toCompare - Time.captureDeltaTime) > float.Epsilon)
                     Debug.LogError(string.Format("Recorder {0} is set to record at a fixed rate and another component has already set a conflicting value for [Time.captureFramerate], new value being applied : {1}!", GetType().Name, fixedRate));
-                else if( Time.captureFramerate == 0 && RecorderOptions.VerboseMode )
+                else if (Time.captureFramerate == 0 && RecorderOptions.VerboseMode)
                     Debug.Log("Frame recorder set fixed frame rate to " + fixedRate);
 
-                Time.captureFramerate = fixedRate;
+                Time.captureDeltaTime = 1.0f / fixedRate;
 
                 sm_CaptureFrameRateCount++;
                 m_ModifiedCaptureFR = true;
@@ -115,7 +119,7 @@ namespace UnityEditor.Recorder
 
             Recording = false;
 
-            if (m_ModifiedCaptureFR )
+            if (m_ModifiedCaptureFR)
             {
                 m_ModifiedCaptureFR = false;
                 sm_CaptureFrameRateCount--;
@@ -133,7 +137,7 @@ namespace UnityEditor.Recorder
                     input.Dispose();
             }
 
-            if(RecorderOptions.VerboseMode)
+            if (RecorderOptions.VerboseMode)
                 Debug.Log(string.Format("{0} recording stopped, total frame count: {1}", GetType().Name, RecordedFramesCount));
 
             ++settings.Take;
@@ -185,27 +189,27 @@ namespace UnityEditor.Recorder
             switch (stage)
             {
                 case ERecordingSessionStage.SessionCreated:
-                    foreach( var input in m_Inputs )
+                    foreach (var input in m_Inputs)
                         input.SessionCreated(session);
                     break;
                 case ERecordingSessionStage.BeginRecording:
-                    foreach( var input in m_Inputs )
+                    foreach (var input in m_Inputs)
                         input.BeginRecording(session);
                     break;
                 case ERecordingSessionStage.NewFrameStarting:
-                    foreach( var input in m_Inputs )
+                    foreach (var input in m_Inputs)
                         input.NewFrameStarting(session);
                     break;
                 case ERecordingSessionStage.NewFrameReady:
-                    foreach( var input in m_Inputs )
+                    foreach (var input in m_Inputs)
                         input.NewFrameReady(session);
                     break;
                 case ERecordingSessionStage.FrameDone:
-                    foreach( var input in m_Inputs )
+                    foreach (var input in m_Inputs)
                         input.FrameDone(session);
                     break;
                 case ERecordingSessionStage.EndRecording:
-                    foreach( var input in m_Inputs )
+                    foreach (var input in m_Inputs)
                         input.EndRecording(session);
                     break;
                 default:
